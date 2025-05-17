@@ -106,6 +106,7 @@ export default function CrowdfundDapp() {
   const [votingPeriod, setVotingPeriod] = useState('');
   const [reworkPeriod, setReworkPeriod] = useState('');
   const [fetching, setFetching] = useState(false);
+  const [txPending, setTxPending] = useState(false);
 
   const connectingRef = useRef(false);
 
@@ -128,6 +129,18 @@ export default function CrowdfundDapp() {
         else return "- Terminated";
       }
     }
+  }
+
+  function getProjectStatus(project) {
+    if (project.endTime * 1000 > Date.now()) return "- Funding";
+    if (project.phases.length == 0) {
+      if (Number(project.currentAmount) < Number(project.goal)) return "- Terminated";
+      else return "- Waiting for Initiation";
+    }
+    const latestPhase = project.phases[project.phases.length - 1];
+    if (latestPhase.status == "- Terminated") return "- Terminated";
+    if (latestPhase.status == "- Passed" && Number(project.currentAmount) == 0) return "- Completed";
+    return "- Developing";
   }
 
   function getMetaMaskProvider() {
@@ -174,8 +187,6 @@ export default function CrowdfundDapp() {
       const nextId = Number(await contract.nextProjectId());
       const arr = [];
       for (let i = 0; i < nextId; i++) {
-        if (i < 0) continue;
-
         let promises = [contract.projects(i), contract.projectState(i)]
         if (funderAddress) promises.push(contract.getFunder(i, funderAddress))
         const res = await Promise.all(promises)
@@ -242,9 +253,9 @@ export default function CrowdfundDapp() {
           funderCount: res[0].funderCount.toString(),
           startTime: res[0].startTime?.toString(),
           endTime: res[0].endTime?.toString(),
-          phases
+          phases,
         };
-        arr.push(project);
+        arr.push({ ...project, status: getProjectStatus(project) });
         setProjectState((prev) => ({ ...prev, [i]: res[1] }))
       }
       setFetching(false);
@@ -258,12 +269,15 @@ export default function CrowdfundDapp() {
   const createProject = async () => {
     if (!goal || !period) return alert('Fill goal and period');
     try {
+      setTxPending(true)
       const tx = await contract.createProject(ethers.parseUnits(goal, 18), period);
       await tx.wait();
+      setTxPending(false)
       fetchProjects(account);
       setGoal("");
       setPeriod("");
     } catch (e) {
+      setTxPending(false)
       alert(e.shortMessage || e.message); console.error(e);
     }
   };
@@ -271,28 +285,43 @@ export default function CrowdfundDapp() {
   const fundProject = async (id) => {
     try {
       await checkApproval(account, ethers.parseUnits(fundAmount[id], 18))
+      setTxPending(true)
       const tx = await contract.fundProject(id, ethers.parseUnits(fundAmount[id], 18));
       await tx.wait();
+      setTxPending(false)
       fetchProjects(account, id);
       setFundAmount(fa => ({ ...fa, [id]: "" }))
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
+    } catch (e) { 
+      setTxPending(false)
+      alert(e.shortMessage || e.message); console.error(e); 
+    }
   };
 
   const reduceFunding = async (id) => {
     try {
+      setTxPending(true)
       const tx = await contract.reduceFunding(id, ethers.parseUnits(reduceAmount[id], 18));
       await tx.wait();
+      setTxPending(false)
       fetchProjects(account, id);
       setReduceAmount(ra => ({ ...ra, [id]: "" }))
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
+    } catch (e) { 
+      setTxPending(false)
+      alert(e.shortMessage || e.message); console.error(e); 
+    }
   };
 
   const claimFunds = async (id) => {
     try {
+      setTxPending(true)
       const tx = await contract.claimFunds(id);
       await tx.wait();
+      setTxPending(false)
       fetchProjects(account, id);
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
+    } catch (e) { 
+      setTxPending(false)
+      alert(e.shortMessage || e.message); console.error(e); 
+    }
   };
 
   const refund = async (id) => {
@@ -302,58 +331,81 @@ export default function CrowdfundDapp() {
 
   const fundingRefund = async (id) => {
     try {
+      setTxPending(true)
       const tx = await contract.fundingRefund(id);
       await tx.wait();
+      setTxPending(false)
       fetchProjects(account, id);
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
+    } catch (e) { 
+      setTxPending(false)
+      alert(e.shortMessage || e.message); console.error(e); 
+    }
   };
 
   const developmentRefund = async (id) => {
     try {
+      setTxPending(true)
       const tx = await contract.developmentRefund(id);
       await tx.wait();
+      setTxPending(false)
       fetchProjects(account, id);
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
+    } catch (e) { 
+      setTxPending(false)
+      alert(e.shortMessage || e.message); console.error(e); 
+    }
   };
 
   const delegate = async (projectId, phaseId) => {
     try {
+      setTxPending(true)
       const tx = await contract.delegate(projectId, delegatee[`${projectId}-${phaseId}`]);
       await tx.wait();
+      setTxPending(false)
       fetchProjects(account, projectId);
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
-  };
-
-  const getFunder = async (id) => {
-    try {
-      const res = await contract.getFunder(id, account);
-      setFunderInfo((prev) => ({ ...prev, [id]: JSON.stringify(res, null, 2) }));
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
+    } catch (e) { 
+      setTxPending(false)
+      alert(e.shortMessage || e.message); console.error(e); 
+    }
   };
 
   const phaseProposal = async (id) => {
     try {
+      setTxPending(true)
       const tx = await contract.phaseProposal(id, ethers.parseUnits(proposalAmount[id] ?? "0", 18), proposalDetail[id] ?? "");
       await tx.wait();
+      setTxPending(false)
       fetchProjects(account, id);
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
+    } catch (e) { 
+      setTxPending(false)
+      alert(e.shortMessage || e.message); console.error(e); 
+    }
   };
 
   const reworkProposal = async (id) => {
     try {
       const withdrawAmount = reworkAmount[id] ? ethers.parseUnits(reworkAmount[id], 18) : ethers.MaxUint256;
+      setTxPending(true)
       const tx = await contract.reworkProposal(id, reworkDetail[id] ?? "", withdrawAmount);
       await tx.wait();
+      setTxPending(false)
       fetchProjects(account, id);
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
+    } catch (e) { 
+      setTxPending(false)
+      alert(e.shortMessage || e.message); console.error(e); 
+    }
   };
 
   const against = async (projectId, phaseId) => {
     try {
+      setTxPending(true)
       const tx = await contract.against(projectId, improvement[`${projectId}-${phaseId}`] ?? "");
       await tx.wait();
+      setTxPending(false)
       fetchProjects(account, projectId);
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
+    } catch (e) { 
+      setTxPending(false)
+      alert(e.shortMessage || e.message); console.error(e); 
+    }
   };
 
   const vote = async (projectId, phaseId) => {
@@ -361,48 +413,30 @@ export default function CrowdfundDapp() {
       const voteType = selectedVoteOp[`${projectId}-${phaseId}`] == "abstain" ? 
         0 : selectedVoteOp[`${projectId}-${phaseId}`] == "for" ? 
           1 : null;
+      setTxPending(true)
       const tx = await contract.vote(projectId, voteType);
       await tx.wait();
+      setTxPending(false)
       fetchProjects(account, projectId);
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
-  };
-
-  const getPhase = async (id) => {
-    try {
-      const res = await contract.getPhase(id, phaseInput[id]);
-      alert('Phase info: ' + JSON.stringify(res));
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
-  };
-
-  const getProposal = async (id) => {
-    try {
-      const res = await contract.getProposal(id, phaseInput[id], !!reworkFlag[id]);
-      alert('Proposal info: ' + JSON.stringify(res));
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
-  };
-
-  const getVoter = async (id) => {
-    try {
-      const res = await contract.getVoter(id, phaseInput[id], account, !!reworkFlag[id]);
-      alert('Voter info: ' + JSON.stringify(res));
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
-  };
-
-  const getProjectState = async (id) => {
-    try {
-      const res = await contract.projectState(id);
-      setProjectState((prev) => ({ ...prev, [id]: JSON.stringify(res, null, 2) }));
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
+    } catch (e) { 
+      setTxPending(false)
+      alert(e.shortMessage || e.message); console.error(e); 
+    }
   };
 
   const setPeriods = async () => {
     try {
+      setTxPending(true)
       const tx = await contract.setPeriods(votingPeriodInput, reworkPeriodInput);
       await tx.wait();
+      setTxPending(false)
       setVotingPeriodInput('');
       setReworkPeriodInput('');
       await getPeriods();
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
+    } catch (e) { 
+      setTxPending(false)
+      alert(e.shortMessage || e.message); console.error(e); 
+    }
   };
 
   const getPeriods = async () => {
@@ -410,13 +444,6 @@ export default function CrowdfundDapp() {
       const res = await Promise.all([contract.votingPeriod(), contract.reworkPeriod()]);
       setVotingPeriod(res[0])
       setReworkPeriod(res[1])
-    } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
-  };
-
-  const getTokenAddress = async () => {
-    try {
-      const res = await contract.tkn();
-      alert('Token address: ' + res);
     } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
   };
 
@@ -465,21 +492,23 @@ export default function CrowdfundDapp() {
               <button
                 className="secondary-btn refresh-fixed-btn"
                 onClick={() => {fetchProjects(account)}}
-                disabled={fetching}
+                disabled={fetching || txPending}
               >
                 {fetching ? (
                   <>
                     <span className="spinner" /> Refreshing...
                   </>
-                ) : (
-                  "Refresh data"
-                )}
+                ) : txPending ? (
+                  <>
+                    <span className="spinner" /> Sending tx...
+                  </>
+                ) : "Refresh data"}
               </button>
             </div>
             {projects.map(project => (
               <div key={`project-${project.id}`} className="project-card card">
                 <div className="project-title">
-                  <h3>Project #{project.id}</h3>
+                  <h3>Project #{project.id} {project.status}</h3>
                   <p className="creator">by {project.creator}</p>
                 </div>
                 <div className="project-details">
