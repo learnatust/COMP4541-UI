@@ -646,9 +646,14 @@
           "type": "uint8"
         },
         {
-          "internalType": "uint128",
+          "internalType": "uint256",
           "name": "threshold",
-          "type": "uint128"
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalAmount",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
