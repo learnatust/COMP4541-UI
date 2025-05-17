@@ -1,6 +1,7 @@
 {
   "name": "crowdfunding-react",
   "version": "0.1.0",
+  "homepage": "http://learnatust.github.io/COMP4541-UI",
   "private": true,
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
@@ -41,6 +42,5 @@
   },
   "devDependencies": {
     "gh-pages": "^6.3.0"
-  },
-  "homepage": "http://learnatust.github.io/crowdfund"
+  }
 }
