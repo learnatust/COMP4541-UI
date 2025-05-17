@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/crowdfund/static/css/main.3f58b64a.css",
-    "main.js": "/crowdfund/static/js/main.2769cce8.js",
-    "static/js/453.419765ac.chunk.js": "/crowdfund/static/js/453.419765ac.chunk.js",
-    "index.html": "/crowdfund/index.html",
-    "main.3f58b64a.css.map": "/crowdfund/static/css/main.3f58b64a.css.map",
-    "main.2769cce8.js.map": "/crowdfund/static/js/main.2769cce8.js.map",
-    "453.419765ac.chunk.js.map": "/crowdfund/static/js/453.419765ac.chunk.js.map"
+    "main.css": "/COMP4541-UI/static/css/main.3f58b64a.css",
+    "main.js": "/COMP4541-UI/static/js/main.1adfa0be.js",
+    "static/js/453.419765ac.chunk.js": "/COMP4541-UI/static/js/453.419765ac.chunk.js",
+    "index.html": "/COMP4541-UI/index.html",
+    "main.3f58b64a.css.map": "/COMP4541-UI/static/css/main.3f58b64a.css.map",
+    "main.1adfa0be.js.map": "/COMP4541-UI/static/js/main.1adfa0be.js.map",
+    "453.419765ac.chunk.js.map": "/COMP4541-UI/static/js/453.419765ac.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.3f58b64a.css",
-    "static/js/main.2769cce8.js"
+    "static/js/main.1adfa0be.js"
   ]
 }
