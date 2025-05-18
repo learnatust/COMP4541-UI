@@ -4,7 +4,8 @@ import contractAbi from './abi/Crowdfund.json';
 import './CrowdfundDapp.css';
 
 // --- FILL THIS IN ---
-const CONTRACT_ADDRESS = '0xA1ebbc04b90Bd05D638D5d26aC4f6FBE4c49eaa9';
+const CONTRACT_ADDRESS = '0x82B1aaFbE889A42173e3106FA7E4bb13D9512605';
+// const CONTRACT_ADDRESS = '0xA1ebbc04b90Bd05D638D5d26aC4f6FBE4c49eaa9';
 const TOKEN_ADDRESS = '0x33c5ABE7775F62aB6E20049bbc5d2eb29DEa1B21';
 
 const ERC20_ABI = [
