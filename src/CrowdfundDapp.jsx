@@ -558,6 +558,9 @@ export default function CrowdfundDapp() {
                         <input value={reworkAmount[project.id] || ''} onChange={e => setReworkAmount(ra => ({ ...ra, [project.id]: e.target.value }))} type="number" placeholder="Rework Withdraw Amount" />
                         <button onClick={() => reworkProposal(project.id)}>Submit Rework</button>
                       </div>
+                      <div className="project-details">
+                        <div>Leave rework withdraw amount field empty if keep unchanged</div>
+                      </div>
                       <div className="actions-grid">
                         <button onClick={() => claimFunds(project.id)}>Claim funds</button>
                       </div>
