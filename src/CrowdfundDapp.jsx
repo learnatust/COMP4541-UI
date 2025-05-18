@@ -107,6 +107,7 @@ export default function CrowdfundDapp() {
   const [reworkPeriod, setReworkPeriod] = useState('');
   const [fetching, setFetching] = useState(false);
   const [txPending, setTxPending] = useState(false);
+  const [skipProject, setSkipProject] = useState(0);
 
   const connectingRef = useRef(false);
 
@@ -180,13 +181,16 @@ export default function CrowdfundDapp() {
   }, []);
 
   // Project functions
-  const fetchProjects = useCallback(async (funderAddress) => {
+  const fetchProjects = useCallback(async (funderAddress, skip = "") => {
     if (!contract) return;
     setFetching(true);
     try {
       const nextId = Number(await contract.nextProjectId());
       const arr = [];
       for (let i = 0; i < nextId; i++) {
+        if (skip) {
+          if (i < skip) continue;
+        }
         let promises = [contract.projects(i), contract.projectState(i)]
         if (funderAddress) promises.push(contract.getFunder(i, funderAddress))
         const res = await Promise.all(promises)
@@ -273,7 +277,7 @@ export default function CrowdfundDapp() {
       const tx = await contract.createProject(ethers.parseUnits(goal, 18), period);
       await tx.wait();
       setTxPending(false)
-      fetchProjects(account);
+      fetchProjects(account, skipProject);
       setGoal("");
       setPeriod("");
     } catch (e) {
@@ -289,7 +293,7 @@ export default function CrowdfundDapp() {
       const tx = await contract.fundProject(id, ethers.parseUnits(fundAmount[id], 18));
       await tx.wait();
       setTxPending(false)
-      fetchProjects(account, id);
+      fetchProjects(account, skipProject);
       setFundAmount(fa => ({ ...fa, [id]: "" }))
     } catch (e) { 
       setTxPending(false)
@@ -303,7 +307,7 @@ export default function CrowdfundDapp() {
       const tx = await contract.reduceFunding(id, ethers.parseUnits(reduceAmount[id], 18));
       await tx.wait();
       setTxPending(false)
-      fetchProjects(account, id);
+      fetchProjects(account, skipProject);
       setReduceAmount(ra => ({ ...ra, [id]: "" }))
     } catch (e) { 
       setTxPending(false)
@@ -317,7 +321,7 @@ export default function CrowdfundDapp() {
       const tx = await contract.claimFunds(id);
       await tx.wait();
       setTxPending(false)
-      fetchProjects(account, id);
+      fetchProjects(account, skipProject);
     } catch (e) { 
       setTxPending(false)
       alert(e.shortMessage || e.message); console.error(e); 
@@ -335,7 +339,7 @@ export default function CrowdfundDapp() {
       const tx = await contract.fundingRefund(id);
       await tx.wait();
       setTxPending(false)
-      fetchProjects(account, id);
+      fetchProjects(account, skipProject);
     } catch (e) { 
       setTxPending(false)
       alert(e.shortMessage || e.message); console.error(e); 
@@ -348,7 +352,7 @@ export default function CrowdfundDapp() {
       const tx = await contract.developmentRefund(id);
       await tx.wait();
       setTxPending(false)
-      fetchProjects(account, id);
+      fetchProjects(account, skipProject);
     } catch (e) { 
       setTxPending(false)
       alert(e.shortMessage || e.message); console.error(e); 
@@ -374,7 +378,7 @@ export default function CrowdfundDapp() {
       const tx = await contract.phaseProposal(id, ethers.parseUnits(proposalAmount[id] ?? "0", 18), proposalDetail[id] ?? "");
       await tx.wait();
       setTxPending(false)
-      fetchProjects(account, id);
+      fetchProjects(account, skipProject);
     } catch (e) { 
       setTxPending(false)
       alert(e.shortMessage || e.message); console.error(e); 
@@ -388,7 +392,7 @@ export default function CrowdfundDapp() {
       const tx = await contract.reworkProposal(id, reworkDetail[id] ?? "", withdrawAmount);
       await tx.wait();
       setTxPending(false)
-      fetchProjects(account, id);
+      fetchProjects(account, skipProject);
     } catch (e) { 
       setTxPending(false)
       alert(e.shortMessage || e.message); console.error(e); 
@@ -401,7 +405,7 @@ export default function CrowdfundDapp() {
       const tx = await contract.against(projectId, improvement[`${projectId}-${phaseId}`] ?? "");
       await tx.wait();
       setTxPending(false)
-      fetchProjects(account, projectId);
+      fetchProjects(account, skipProject);
     } catch (e) { 
       setTxPending(false)
       alert(e.shortMessage || e.message); console.error(e); 
@@ -417,7 +421,7 @@ export default function CrowdfundDapp() {
       const tx = await contract.vote(projectId, voteType);
       await tx.wait();
       setTxPending(false)
-      fetchProjects(account, projectId);
+      fetchProjects(account, skipProject);
     } catch (e) { 
       setTxPending(false)
       alert(e.shortMessage || e.message); console.error(e); 
@@ -446,6 +450,18 @@ export default function CrowdfundDapp() {
       setReworkPeriod(res[1])
     } catch (e) { alert(e.shortMessage || e.message); console.error(e); }
   };
+
+  const setSkipProjectInternal = (val) => {
+    if (val == "") {
+      setSkipProject("");
+      return;
+    }
+
+    try {
+      const temp = Number(val);
+      if (temp > 0) setSkipProject(temp)
+    } catch (e) {}
+  }
 
   // Auto-connect if MetaMask present
   useEffect(() => {
@@ -488,10 +504,13 @@ export default function CrowdfundDapp() {
           </section>
           <section>
             <div className="section-header">
-              <h2>Projects</h2>
+              <div>
+                <h2>Projects</h2>
+                Skip projects to reduce fetching time: <input value={skipProject} onChange={e => setSkipProjectInternal(e.target.value)} type="number" placeholder="Skip count" />
+              </div>
               <button
                 className="secondary-btn refresh-fixed-btn"
-                onClick={() => {fetchProjects(account)}}
+                onClick={() => {fetchProjects(account, skipProject)}}
                 disabled={fetching || txPending}
               >
                 {fetching ? (
@@ -502,7 +521,7 @@ export default function CrowdfundDapp() {
                   <>
                     <span className="spinner" /> Sending tx...
                   </>
-                ) : "Refresh data"}
+                ) : "Refresh Data"}
               </button>
             </div>
             {projects.map(project => (
